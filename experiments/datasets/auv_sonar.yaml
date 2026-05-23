@@ -1,0 +1,12 @@
+# AUV sonar detection dataset for YOLOv26
+# NOTE: using absolute paths provided by user
+
+path: E:/HUST/freshman/code/cursor/sonar_detect/yolo_data/dataset
+
+train: images/train
+val: images/val
+
+# class mapping (aligned with auvtrack.yaml defaults)
+names:
+  0: bow
+  1: body

@@ -1,0 +1,24 @@
+# AUV tracking config (paper-oriented)
+tracker_type: auvtrack
+
+# Base ByteTrack thresholds
+track_high_thresh: 0.25
+track_low_thresh: 0.1
+new_track_thresh: 0.25
+track_buffer: 30
+match_thresh: 0.8
+fuse_score: True
+
+# Legacy modules from previous paper
+use_joint_iou: True
+bow_class_id: 0
+body_class_id: 1
+lambda1: 0.12
+lambda2: 0.08
+lambda_tol: 0.6
+
+use_trend_confidence: True
+trend_k: 0.1
+trend_max_delta: 0.25
+sonar_origin_x: 0.0
+sonar_origin_y: 0.0
