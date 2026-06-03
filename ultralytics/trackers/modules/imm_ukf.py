@@ -13,9 +13,16 @@ class IMMUKFFilter:
     state. This keeps compatibility with the existing ByteTrack/STRack interface.
     """
 
-    model_names = ("cv", "ca", "ctra")
+    default_model_names = ("cv", "ca", "ctra")
 
-    def __init__(self, dt: float = 1.0, alpha: float = 0.7, beta: float = 2.0, kappa: float = 0.0):
+    def __init__(
+        self,
+        dt: float = 1.0,
+        alpha: float = 0.7,
+        beta: float = 2.0,
+        kappa: float = 0.0,
+        model_names: tuple[str, ...] | list[str] | str | None = None,
+    ):
         self.dt = float(dt)
         self.alpha = float(alpha)
         self.beta = float(beta)
@@ -23,14 +30,34 @@ class IMMUKFFilter:
         self.dim_x = 10
         self.dim_z = 4
         self._eps = 1e-6
-        self.transition = np.array(
-            [
-                [0.90, 0.07, 0.03],
-                [0.07, 0.88, 0.05],
-                [0.04, 0.08, 0.88],
-            ],
-            dtype=np.float64,
-        )
+        if model_names is None:
+            model_names = self.default_model_names
+        if isinstance(model_names, str):
+            model_names = (model_names,)
+        self.model_names = tuple(str(m).lower() for m in model_names)
+        invalid = set(self.model_names) - set(self.default_model_names)
+        if invalid:
+            raise ValueError(f"Unsupported UKF model(s): {sorted(invalid)}")
+        self.transition = self._build_transition(self.model_names)
+
+    @staticmethod
+    def _build_transition(model_names: tuple[str, ...]) -> np.ndarray:
+        if len(model_names) == 1:
+            return np.ones((1, 1), dtype=np.float64)
+        if model_names == IMMUKFFilter.default_model_names:
+            return np.array(
+                [
+                    [0.90, 0.07, 0.03],
+                    [0.07, 0.88, 0.05],
+                    [0.04, 0.08, 0.88],
+                ],
+                dtype=np.float64,
+            )
+        n = len(model_names)
+        off_diag = 0.10 / max(1, n - 1)
+        transition = np.full((n, n), off_diag, dtype=np.float64)
+        np.fill_diagonal(transition, 0.90)
+        return transition / transition.sum(axis=1, keepdims=True)
 
     def initiate(self, measurement: np.ndarray):
         """Initialize from measurement [x, y, w, h]."""
@@ -55,11 +82,16 @@ class IMMUKFFilter:
         imm_state = {
             "means": np.repeat(mean[None, :], len(self.model_names), axis=0),
             "covariances": np.repeat(cov[None, :, :], len(self.model_names), axis=0),
-            "probs": np.array([0.45, 0.35, 0.20], dtype=np.float64),
+            "probs": self._initial_probs(),
         }
         mean, mixed_cov = self._combine_estimate(imm_state)
         imm_state["mixed_covariance"] = mixed_cov
         return mean.astype(np.float32), imm_state
+
+    def _initial_probs(self) -> np.ndarray:
+        if self.model_names == self.default_model_names:
+            return np.array([0.45, 0.35, 0.20], dtype=np.float64)
+        return np.ones(len(self.model_names), dtype=np.float64) / len(self.model_names)
 
     def _as_state10(self, mean: np.ndarray) -> np.ndarray:
         mean = np.asarray(mean, dtype=np.float64).reshape(-1)

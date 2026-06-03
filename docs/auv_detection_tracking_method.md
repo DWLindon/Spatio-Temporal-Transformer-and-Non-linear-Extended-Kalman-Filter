@@ -45,7 +45,7 @@ The observation model is:
 
 The tracker exposes the mixed IMM mean to ByteTrack while storing model-specific UKF states internally.
 
-## EKF-CTRV Baseline
+## EKF-CTRV Retained Baseline
 
 The EKF state is:
 
@@ -70,22 +70,27 @@ For `omega -> 0`, the model degenerates to straight-line motion:
 
 `y' = y + v * sin(theta) * dt`
 
-The analytic transition Jacobian is retained as a baseline in `ultralytics/trackers/modules/ekf_ctrv.py`.
+The analytic transition Jacobian is retained in `ultralytics/trackers/modules/ekf_ctrv.py`.
 Use `python experiments/check_ekf_ctrv_jacobian.py` to compare it against finite differences.
 
 For EKF-CTRV, the observation model uses a linear matrix selecting state indices `0, 1, 5, 6`. Process and measurement noise scale with the
 observed target height to adapt uncertainty to sonar target size.
 
+EKF-CTRV is kept for historical comparison and optional manual testing. It is not part of the default paper ablation
+because the current method focuses on CV/CA/CTRA motion hypotheses and their IMM fusion.
+
 ## Tracking Ablation Protocol
 
-The default ablation suite now contains seven groups:
+The default ablation suite now contains these groups:
 
 - `baseline_yolo26`: YOLO26 + ByteTrack;
 - `ablation_stdfm`: YOLO26 + STDFM + ByteTrack;
-- `ablation_ekf`: YOLO26 + EKF-CTRV;
+- `ablation_ukf_cv`: YOLO26 + single-model UKF-CV;
+- `ablation_ukf_ca`: YOLO26 + single-model UKF-CA;
+- `ablation_ukf_ctra`: YOLO26 + single-model UKF-CTRA;
 - `ablation_imm_ukf`: YOLO26 + IMM-UKF;
-- `ablation_joint_iou`: YOLO26 + EKF-CTRV + bow/body joint IoU;
-- `ablation_trend_conf`: YOLO26 + EKF-CTRV + bounded docking-trend confidence;
+- `ablation_joint_iou`: YOLO26 + IMM-UKF + bow/body joint IoU;
+- `ablation_trend_conf`: YOLO26 + IMM-UKF + bounded docking-trend confidence;
 - `ours_stdfm_imm_ukf_iou_trend`: YOLO26 + STDFM + IMM-UKF + joint IoU + trend confidence.
 
 When `--track-source` and `--mot-gt-file` are provided, the runner exports MOT-format predictions and reports

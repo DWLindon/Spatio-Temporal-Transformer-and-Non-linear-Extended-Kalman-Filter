@@ -8,7 +8,7 @@ This repository is built on Ultralytics YOLO26 and adds a paper-oriented AUV det
 - **IMM-UKF**: interacting multiple-model unscented Kalman filtering with CV, CA, and CTRA motion hypotheses.
 - **EKF-CTRV baseline**: retained as a motion-model ablation and historical comparison.
 - **AUVTrack**: an end-to-end tracking pipeline combining IMM-UKF, bow/body joint IoU association, and docking-trend confidence calibration.
-- **Experiment tooling**: seven-way ablation, MOT-style tracking metrics, model complexity reporting, and Jacobian validation.
+- **Experiment tooling**: default ablation over ST-DFM, UKF-CV, UKF-CA, UKF-CTRA, IMM-UKF, joint IoU, and trend confidence.
 
 ## Main Additions
 
@@ -40,7 +40,7 @@ Run a 10-epoch smoke test for the full method:
 python experiments/ablation_runner.py --epochs 10 --run-ours --data experiments/datasets/auv_sonar.yaml --profile-runs 5
 ```
 
-Run the full seven-way ablation:
+Run the default ablation suite:
 
 ```bash
 python experiments/ablation_runner.py --epochs 100 --data experiments/datasets/auv_sonar.yaml --profile-runs 20
@@ -61,6 +61,12 @@ Check the EKF-CTRV transition Jacobian:
 
 ```bash
 python experiments/check_ekf_ctrv_jacobian.py
+```
+
+EKF-CTRV is retained as an optional historical baseline, but it is not included in the default ablation suite:
+
+```bash
+python experiments/ablation_runner.py --epochs 100 --run-ekf --data experiments/datasets/auv_sonar.yaml
 ```
 
 ## Dataset

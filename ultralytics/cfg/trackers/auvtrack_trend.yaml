@@ -1,6 +1,6 @@
-# AUV tracking config for EKF-CTRV + docking trend confidence ablation
+# AUV tracking config for IMM-UKF + docking trend confidence ablation
 tracker_type: auvtrack
-motion_filter: ekf_ctrv
+motion_filter: imm_ukf
 
 track_high_thresh: 0.25
 track_low_thresh: 0.1

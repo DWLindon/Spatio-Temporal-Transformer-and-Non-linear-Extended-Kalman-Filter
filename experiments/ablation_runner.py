@@ -35,7 +35,10 @@ def parse_args():
     p.add_argument("--project", type=str, default="runs/ablation")
     p.add_argument("--run-baseline", action="store_true")
     p.add_argument("--run-stdfm", action="store_true")
-    p.add_argument("--run-ekf", action="store_true")
+    p.add_argument("--run-ekf", action="store_true", help="Optional historical EKF-CTRV baseline; not part of default ablation")
+    p.add_argument("--run-cv", action="store_true")
+    p.add_argument("--run-ca", action="store_true")
+    p.add_argument("--run-ctra", action="store_true")
     p.add_argument("--run-imm-ukf", action="store_true")
     p.add_argument("--run-joint-iou", action="store_true")
     p.add_argument("--run-trend", action="store_true")
@@ -44,6 +47,9 @@ def parse_args():
     p.add_argument("--stdfm-model", type=str, default="experiments/models/yolo26_stdfm.yaml")
     p.add_argument("--tracker-baseline", type=str, default="ultralytics/cfg/trackers/bytetrack.yaml")
     p.add_argument("--tracker-ekf", type=str, default="ultralytics/cfg/trackers/auvtrack_ekf.yaml")
+    p.add_argument("--tracker-cv", type=str, default="ultralytics/cfg/trackers/auvtrack_ukf_cv.yaml")
+    p.add_argument("--tracker-ca", type=str, default="ultralytics/cfg/trackers/auvtrack_ukf_ca.yaml")
+    p.add_argument("--tracker-ctra", type=str, default="ultralytics/cfg/trackers/auvtrack_ukf_ctra.yaml")
     p.add_argument("--tracker-imm-ukf", type=str, default="ultralytics/cfg/trackers/auvtrack_imm_ukf.yaml")
     p.add_argument("--tracker-joint-iou", type=str, default="ultralytics/cfg/trackers/auvtrack_joint_iou.yaml")
     p.add_argument("--tracker-trend", type=str, default="ultralytics/cfg/trackers/auvtrack_trend.yaml")
@@ -80,6 +86,9 @@ def normalize_args(args):
     args.stdfm_model = resolve_repo_path(args.stdfm_model)
     args.tracker_baseline = resolve_repo_path(args.tracker_baseline)
     args.tracker_ekf = resolve_repo_path(args.tracker_ekf)
+    args.tracker_cv = resolve_repo_path(args.tracker_cv)
+    args.tracker_ca = resolve_repo_path(args.tracker_ca)
+    args.tracker_ctra = resolve_repo_path(args.tracker_ctra)
     args.tracker_imm_ukf = resolve_repo_path(args.tracker_imm_ukf)
     args.tracker_joint_iou = resolve_repo_path(args.tracker_joint_iou)
     args.tracker_trend = resolve_repo_path(args.tracker_trend)
@@ -327,6 +336,9 @@ def main():
             args.run_baseline,
             args.run_stdfm,
             args.run_ekf,
+            args.run_cv,
+            args.run_ca,
+            args.run_ctra,
             args.run_imm_ukf,
             args.run_joint_iou,
             args.run_trend,
@@ -335,7 +347,9 @@ def main():
     ):
         args.run_baseline = True
         args.run_stdfm = True
-        args.run_ekf = True
+        args.run_cv = True
+        args.run_ca = True
+        args.run_ctra = True
         args.run_imm_ukf = True
         args.run_joint_iou = True
         args.run_trend = True
@@ -347,6 +361,12 @@ def main():
         run_experiment("ablation_stdfm", args.stdfm_model, args.tracker_baseline, args, summary_file, True)
     if args.run_ekf:
         run_experiment("ablation_ekf", args.baseline_model, args.tracker_ekf, args, summary_file, False)
+    if args.run_cv:
+        run_experiment("ablation_ukf_cv", args.baseline_model, args.tracker_cv, args, summary_file, False)
+    if args.run_ca:
+        run_experiment("ablation_ukf_ca", args.baseline_model, args.tracker_ca, args, summary_file, False)
+    if args.run_ctra:
+        run_experiment("ablation_ukf_ctra", args.baseline_model, args.tracker_ctra, args, summary_file, False)
     if args.run_imm_ukf:
         run_experiment("ablation_imm_ukf", args.baseline_model, args.tracker_imm_ukf, args, summary_file, False)
     if args.run_joint_iou:

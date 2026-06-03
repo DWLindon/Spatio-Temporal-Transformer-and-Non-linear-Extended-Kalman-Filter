@@ -81,6 +81,12 @@ class AUVByteTracker(BYTETracker):
         motion_filter = str(getattr(self.args, "motion_filter", "imm_ukf")).lower()
         if motion_filter in {"ekf", "ekf_ctrv", "ctrv"}:
             return EKFCTRVFilter()
+        if motion_filter in {"ukf_cv", "cv"}:
+            return IMMUKFFilter(model_names=("cv",))
+        if motion_filter in {"ukf_ca", "ca"}:
+            return IMMUKFFilter(model_names=("ca",))
+        if motion_filter in {"ukf_ctra", "ctra"}:
+            return IMMUKFFilter(model_names=("ctra",))
         if motion_filter in {"imm", "ukf", "imm_ukf", "imm-ukf"}:
             return IMMUKFFilter()
         raise ValueError(f"Unsupported AUV motion_filter: {motion_filter}")
