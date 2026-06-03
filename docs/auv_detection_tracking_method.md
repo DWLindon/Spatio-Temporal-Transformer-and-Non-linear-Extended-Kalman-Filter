@@ -19,7 +19,33 @@ The ablation script enforces this protocol:
 - video tracking: STDFM models run with temporal cache enabled;
 - cache reset: every mode switch clears stale temporal features.
 
-## EKF-CTRV State And Transition
+## IMM-UKF State And Transition
+
+The final AUV tracker uses an IMM-UKF motion estimator rather than assuming a single constant-turn-rate model. The
+shared state is:
+
+`X = [x, y, v, a, theta, omega, w, h, vw, vh]^T`
+
+where `(x, y)` is the box center, `v` is speed, `a` is longitudinal acceleration, `theta` is heading, `omega` is yaw
+rate, `(w, h)` is box size, and `(vw, vh)` are size change rates.
+
+The IMM branch contains three UKF models:
+
+- `CV`: constant-velocity straight motion, used for stable approach segments;
+- `CA`: constant-acceleration straight motion, used for docking deceleration or acceleration;
+- `CTRA`: constant-turn-rate-and-acceleration motion, used for maneuvering and heading correction.
+
+Each model propagates sigma points through its nonlinear motion function. The IMM transition matrix mixes model
+probabilities before prediction, and measurement likelihoods update those probabilities after association. This makes
+`CTRA` one local hypothesis rather than a global assumption that the AUV always moves with constant speed and turn rate.
+
+The observation model is:
+
+`z = [x, y, w, h]^T`
+
+The tracker exposes the mixed IMM mean to ByteTrack while storing model-specific UKF states internally.
+
+## EKF-CTRV Baseline
 
 The EKF state is:
 
@@ -44,26 +70,23 @@ For `omega -> 0`, the model degenerates to straight-line motion:
 
 `y' = y + v * sin(theta) * dt`
 
-The analytic transition Jacobian is implemented in `ultralytics/trackers/modules/ekf_ctrv.py`.
+The analytic transition Jacobian is retained as a baseline in `ultralytics/trackers/modules/ekf_ctrv.py`.
 Use `python experiments/check_ekf_ctrv_jacobian.py` to compare it against finite differences.
 
-The observation model is:
-
-`z = [x, y, w, h]^T`
-
-with a linear observation matrix selecting state indices `0, 1, 5, 6`. Process and measurement noise scale with the
+For EKF-CTRV, the observation model uses a linear matrix selecting state indices `0, 1, 5, 6`. Process and measurement noise scale with the
 observed target height to adapt uncertainty to sonar target size.
 
 ## Tracking Ablation Protocol
 
-The default ablation suite now contains six groups:
+The default ablation suite now contains seven groups:
 
 - `baseline_yolo26`: YOLO26 + ByteTrack;
 - `ablation_stdfm`: YOLO26 + STDFM + ByteTrack;
 - `ablation_ekf`: YOLO26 + EKF-CTRV;
+- `ablation_imm_ukf`: YOLO26 + IMM-UKF;
 - `ablation_joint_iou`: YOLO26 + EKF-CTRV + bow/body joint IoU;
 - `ablation_trend_conf`: YOLO26 + EKF-CTRV + bounded docking-trend confidence;
-- `ours_stdfm_ekf_iou_trend`: YOLO26 + STDFM + EKF-CTRV + joint IoU + trend confidence.
+- `ours_stdfm_imm_ukf_iou_trend`: YOLO26 + STDFM + IMM-UKF + joint IoU + trend confidence.
 
 When `--track-source` and `--mot-gt-file` are provided, the runner exports MOT-format predictions and reports
 `MOTA`, `MOTP`, `IDF1`, `IDP`, `IDR`, tracking precision/recall/F1, `FP`, `FN`, `IDS`, `Frag`, `MT`, `PT`, `ML`,

@@ -5,9 +5,10 @@ Robust underwater acoustic target detection and tracking for AUV autonomous dock
 This repository is built on Ultralytics YOLO26 and adds a paper-oriented AUV detection-tracking framework with:
 
 - **ST-DFM**: spatio-temporal deformable feature fusion for weak or distorted sonar observations.
-- **EKF-CTRV**: extended Kalman filtering with a constant-turn-rate-and-velocity motion model for nonlinear AUV maneuvers.
-- **AUVTrack**: an end-to-end tracking pipeline combining EKF-CTRV, bow/body joint IoU association, and docking-trend confidence calibration.
-- **Experiment tooling**: six-way ablation, MOT-style tracking metrics, model complexity reporting, and Jacobian validation.
+- **IMM-UKF**: interacting multiple-model unscented Kalman filtering with CV, CA, and CTRA motion hypotheses.
+- **EKF-CTRV baseline**: retained as a motion-model ablation and historical comparison.
+- **AUVTrack**: an end-to-end tracking pipeline combining IMM-UKF, bow/body joint IoU association, and docking-trend confidence calibration.
+- **Experiment tooling**: seven-way ablation, MOT-style tracking metrics, model complexity reporting, and Jacobian validation.
 
 ## Main Additions
 
@@ -19,7 +20,8 @@ Important project files:
 - `experiments/check_ekf_ctrv_jacobian.py`: analytic-vs-numeric EKF transition Jacobian check.
 - `ultralytics/nn/modules/transformer.py`: ST-DFM implementation.
 - `ultralytics/trackers/auv_tracker.py`: AUV tracker integration.
-- `ultralytics/trackers/modules/ekf_ctrv.py`: EKF-CTRV filter.
+- `ultralytics/trackers/modules/imm_ukf.py`: IMM-UKF filter.
+- `ultralytics/trackers/modules/ekf_ctrv.py`: EKF-CTRV baseline filter.
 - `ultralytics/trackers/modules/iou_association.py`: bow/body joint IoU prior.
 - `ultralytics/trackers/modules/trend_confidence.py`: bounded docking-trend confidence calibration.
 - `docs/auv_detection_tracking_method.md`: implementation-facing method notes for the paper.
@@ -38,7 +40,7 @@ Run a 10-epoch smoke test for the full method:
 python experiments/ablation_runner.py --epochs 10 --run-ours --data experiments/datasets/auv_sonar.yaml --profile-runs 5
 ```
 
-Run the full six-way ablation:
+Run the full seven-way ablation:
 
 ```bash
 python experiments/ablation_runner.py --epochs 100 --data experiments/datasets/auv_sonar.yaml --profile-runs 20

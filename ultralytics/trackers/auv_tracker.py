@@ -6,12 +6,12 @@ import numpy as np
 
 from .basetrack import TrackState
 from .byte_tracker import BYTETracker, STrack
-from .modules import EKFCTRVFilter, JointIOUAssociator, TrendConfidenceCalibrator
+from .modules import EKFCTRVFilter, IMMUKFFilter, JointIOUAssociator, TrendConfidenceCalibrator
 from .utils import matching
 
 
 class AUVSTrack(STrack):
-    """STrack variant with EKF-CTRV state space."""
+    """STrack variant with AUV-specific nonlinear motion state space."""
 
     shared_kalman = EKFCTRVFilter()
 
@@ -28,7 +28,10 @@ class AUVSTrack(STrack):
     def tlwh(self) -> np.ndarray:
         if self.mean is None:
             return self._tlwh.copy()
-        x, y, _v, _theta, _omega, w, h, _vw, _vh = self.mean
+        if len(self.mean) == 10:
+            x, y, _v, _a, _theta, _omega, w, h, _vw, _vh = self.mean
+        else:
+            x, y, _v, _theta, _omega, w, h, _vw, _vh = self.mean
         return np.asarray([x - w / 2, y - h / 2, max(1e-3, w), max(1e-3, h)], dtype=np.float32)
 
     def predict(self):
@@ -38,12 +41,8 @@ class AUVSTrack(STrack):
     def multi_predict(stracks: list[AUVSTrack]):
         if len(stracks) <= 0:
             return
-        multi_mean = np.asarray([st.mean.copy() for st in stracks])
-        multi_covariance = np.asarray([st.covariance for st in stracks])
-        multi_mean, multi_covariance = AUVSTrack.shared_kalman.multi_predict(multi_mean, multi_covariance)
-        for i, (mean, cov) in enumerate(zip(multi_mean, multi_covariance)):
-            stracks[i].mean = mean
-            stracks[i].covariance = cov
+        for st in stracks:
+            st.mean, st.covariance = st.kalman_filter.predict(st.mean, st.covariance)
 
     @staticmethod
     def multi_gmc(stracks: list[AUVSTrack], H: np.ndarray = np.eye(2, 3)):
@@ -61,6 +60,7 @@ class AUVByteTracker(BYTETracker):
 
     def __init__(self, args, frame_rate: int = 30):
         super().__init__(args=args, frame_rate=frame_rate)
+        self.motion_filter = str(getattr(args, "motion_filter", "imm_ukf")).lower()
         self.iou_associator = JointIOUAssociator(
             enabled=bool(getattr(args, "use_joint_iou", False)),
             bow_class_id=int(getattr(args, "bow_class_id", 0)),
@@ -77,8 +77,13 @@ class AUVByteTracker(BYTETracker):
             sonar_origin_y=float(getattr(args, "sonar_origin_y", 0.0)),
         )
 
-    def get_kalmanfilter(self) -> EKFCTRVFilter:
-        return EKFCTRVFilter()
+    def get_kalmanfilter(self):
+        motion_filter = str(getattr(self.args, "motion_filter", "imm_ukf")).lower()
+        if motion_filter in {"ekf", "ekf_ctrv", "ctrv"}:
+            return EKFCTRVFilter()
+        if motion_filter in {"imm", "ukf", "imm_ukf", "imm-ukf"}:
+            return IMMUKFFilter()
+        raise ValueError(f"Unsupported AUV motion_filter: {motion_filter}")
 
     def init_track(self, results, img: np.ndarray | None = None) -> list[AUVSTrack]:
         if len(results) == 0:

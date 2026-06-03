@@ -1,5 +1,6 @@
 # AUV tracking config for EKF-only ablation
 tracker_type: auvtrack
+motion_filter: ekf_ctrv
 
 track_high_thresh: 0.25
 track_low_thresh: 0.1

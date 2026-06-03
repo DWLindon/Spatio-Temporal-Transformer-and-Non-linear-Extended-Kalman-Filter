@@ -36,6 +36,7 @@ def parse_args():
     p.add_argument("--run-baseline", action="store_true")
     p.add_argument("--run-stdfm", action="store_true")
     p.add_argument("--run-ekf", action="store_true")
+    p.add_argument("--run-imm-ukf", action="store_true")
     p.add_argument("--run-joint-iou", action="store_true")
     p.add_argument("--run-trend", action="store_true")
     p.add_argument("--run-ours", action="store_true")
@@ -43,6 +44,7 @@ def parse_args():
     p.add_argument("--stdfm-model", type=str, default="experiments/models/yolo26_stdfm.yaml")
     p.add_argument("--tracker-baseline", type=str, default="ultralytics/cfg/trackers/bytetrack.yaml")
     p.add_argument("--tracker-ekf", type=str, default="ultralytics/cfg/trackers/auvtrack_ekf.yaml")
+    p.add_argument("--tracker-imm-ukf", type=str, default="ultralytics/cfg/trackers/auvtrack_imm_ukf.yaml")
     p.add_argument("--tracker-joint-iou", type=str, default="ultralytics/cfg/trackers/auvtrack_joint_iou.yaml")
     p.add_argument("--tracker-trend", type=str, default="ultralytics/cfg/trackers/auvtrack_trend.yaml")
     p.add_argument("--tracker-ours", type=str, default="ultralytics/cfg/trackers/auvtrack.yaml")
@@ -78,6 +80,7 @@ def normalize_args(args):
     args.stdfm_model = resolve_repo_path(args.stdfm_model)
     args.tracker_baseline = resolve_repo_path(args.tracker_baseline)
     args.tracker_ekf = resolve_repo_path(args.tracker_ekf)
+    args.tracker_imm_ukf = resolve_repo_path(args.tracker_imm_ukf)
     args.tracker_joint_iou = resolve_repo_path(args.tracker_joint_iou)
     args.tracker_trend = resolve_repo_path(args.tracker_trend)
     args.tracker_ours = resolve_repo_path(args.tracker_ours)
@@ -320,11 +323,20 @@ def main():
         args.mot_pred_dir = str(Path(args.project) / "mot_preds")
 
     if not any(
-        [args.run_baseline, args.run_stdfm, args.run_ekf, args.run_joint_iou, args.run_trend, args.run_ours]
+        [
+            args.run_baseline,
+            args.run_stdfm,
+            args.run_ekf,
+            args.run_imm_ukf,
+            args.run_joint_iou,
+            args.run_trend,
+            args.run_ours,
+        ]
     ):
         args.run_baseline = True
         args.run_stdfm = True
         args.run_ekf = True
+        args.run_imm_ukf = True
         args.run_joint_iou = True
         args.run_trend = True
         args.run_ours = True
@@ -335,12 +347,14 @@ def main():
         run_experiment("ablation_stdfm", args.stdfm_model, args.tracker_baseline, args, summary_file, True)
     if args.run_ekf:
         run_experiment("ablation_ekf", args.baseline_model, args.tracker_ekf, args, summary_file, False)
+    if args.run_imm_ukf:
+        run_experiment("ablation_imm_ukf", args.baseline_model, args.tracker_imm_ukf, args, summary_file, False)
     if args.run_joint_iou:
         run_experiment("ablation_joint_iou", args.baseline_model, args.tracker_joint_iou, args, summary_file, False)
     if args.run_trend:
         run_experiment("ablation_trend_conf", args.baseline_model, args.tracker_trend, args, summary_file, False)
     if args.run_ours:
-        run_experiment("ours_stdfm_ekf_iou_trend", args.stdfm_model, args.tracker_ours, args, summary_file, True)
+        run_experiment("ours_stdfm_imm_ukf_iou_trend", args.stdfm_model, args.tracker_ours, args, summary_file, True)
 
 
 if __name__ == "__main__":
